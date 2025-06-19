@@ -1,14 +1,11 @@
 const CardLi = ({ color, amount, text, children }) => {
   return (
-    <li className={`w-2/8 bg-slate-600 rounded-lg p-4 flex items-center justify-between mb-4 text-white`}>
-        <div>
-            <div className={`text-${color}-600 font-bold text-lg`}>{amount}</div>
-            <div className="text-white-700">{text}</div>
+    <div className=" w-2/8 shadow-lg rounded bg-slate-700 p-4 text-white">
+            <h2 className={`flex gap-2 text-${color}-400 text-3xl`} >
+                 {children}{amount}
+            </h2>
+            <p className=" text-end text-slate-200 ">{text}</p>
         </div>
-        <div className={`text-${color}-600 text-2xl`}>
-            {children}
-        </div>
-    </li>
   )
 }
 
