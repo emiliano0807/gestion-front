@@ -6,7 +6,12 @@ import { useState } from "react";
 const App = () => {
   const { asignarComponente, setRuta } = useCustomRoute();
 
+
+
+  
+  
   const [navVisibility,setNavVisibility] = useState(true);
+
 
   return (
     <>
