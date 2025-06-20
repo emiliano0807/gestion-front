@@ -1,22 +1,39 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
-const TransactionItem = ({transaction}) => {
-    const color = transaction.type == "ingreso" ? "emerald" : "rose";
+import { ArrowDownToLine, ArrowUpToLine } from 'lucide-react';
+
+const TransactionItem = ({ transaction, formatearMoneda, destacado }) => {
+  const isIngreso = transaction.type === "ingreso";
+  const iconColor = isIngreso ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600";
+
+  const fecha = new Date(transaction.date);
+  const now = new Date();
+  const minutos = Math.round((fecha - now) / (1000 * 60));
+  const tiempoRelativo = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
+
   return (
-     <li className={`bg-slate-600 flex text-${color}-600 justify-between px-2`}>
-          <div className="flex">
-            {transaction.type=="ingreso" ? (<ArrowUp/>):(<ArrowDown/>)}
-            <div className="text-white mx-4 text-start">
-              <h3 className="text-xl font-bold mb-1">{transaction.description}</h3>
-              <small className="text-amber-300 text-sm">{transaction.categoryName}</small>
-            </div>
-          </div>
+    <li
+      className={`flex justify-between items-center gap-4 p-5 rounded-xl shadow-md bg-white transition-all
+        ${destacado ? "border-4 border-yellow-400" : "border border-gray-200"}`}
+    >
+      {/* Icono */}
+      <div className={`w-12 h-12 flex items-center justify-center rounded-full ${iconColor}`}>
+        {isIngreso ? <ArrowUpToLine size={24} /> : <ArrowDownToLine size={24} />}
+      </div>
 
-            <div className="text-white text-end">
-              <p><span className={`text-2xl text-${color}-600 font-bold`}>${transaction.amount} MXN</span></p>
-              <p className="text-cyan-300">{transaction.date}</p>
-            </div>
-          </li>
-  )
-}
+      {/* Información */}
+      <div className="flex-1">
+        <h3 className="text-lg font-semibold text-gray-800">{transaction.description}</h3>
+        <p className="text-sm text-gray-500">{transaction.category?.name || "Sin categoría"}</p>
+      </div>
 
-export default TransactionItem
+      {/* Monto y fecha */}
+      <div className="text-right">
+        <span className={`block font-bold text-lg ${isIngreso ? "text-green-600" : "text-red-600"}`}>
+          {formatearMoneda(transaction.amount)}
+        </span>
+        <p className="text-sm text-gray-400">{tiempoRelativo.format(minutos, 'minute')}</p>
+      </div>
+    </li>
+  );
+};
+
+export default TransactionItem;

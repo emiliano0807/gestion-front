@@ -8,7 +8,7 @@ import NotFound from '../routes/NotFound';
 export const useCustomRoute = () =>{
     const [ruta, setRuta] = useState("/");
     const asignarComponente = ()=>{
-    if (ruta == "/") {
+    if (ruta === "/") {
       return <Dashboard />;
     } else if (ruta == "/login") {
       return <Login />;
@@ -24,3 +24,4 @@ export const useCustomRoute = () =>{
 }
 
 // TODO:Regresar un componente y el setRuta
+export default useCustomRoute;

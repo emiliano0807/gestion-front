@@ -1,117 +1,198 @@
-import TransactionItem from "../atoms/TransactionItem";
-const Transactions = () => {
+import { useEffect, useState } from 'react'
+import TransactionItem from '../atoms/TransactionItem'
+import toast from 'react-hot-toast'
 
-  const transactionsList = [
-        {
-            description:"Pago de nomina",
-            categoryName:"Trabajo",
-            type:"ingreso",
-            date:"03/06/2025",
-            amount:"10000"
+const Transaction = () => {
+  const [transactions, setTransactions] = useState([])
+  const [description, setDescription] = useState("")
+  const [amount, setAmount] = useState("")
+  const [type, setType] = useState("ingreso")
+  const [category, setCategory] = useState("")
+  const [categories, setCategories] = useState([])
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const token = localStorage.getItem("tokenLogin")
+  if (!token) {
+    toast.error("No estás autenticado. Por favor, inicia sesión.");
+    return
+  }
+
+  const getTransactions = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/transaction", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      setTransactions(data)
+    } catch (err) {
+      console.error("Error al cargar transacciones", err)
+    }
+  }
+
+  const getCategories = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/category/", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      setCategories(data)
+      if (data.length > 0) setCategory(data[0]._id)
+    } catch (err) {
+      console.error("Error al cargar categorías", err)
+    }
+  }
+
+  useEffect(() => {
+    getTransactions()
+    getCategories()
+  }, [])
+
+  const buttonSubmit = async (e) => {
+    e.preventDefault()
+    if (!description.trim() || !amount || !type || !category) {
+      toast.error("Completa todos los campos")
+      return
+    }
+    if (isNaN(amount) || Number(amount) <= 0) {
+      toast.error("El monto debe ser un número positivo")
+      return
+    }
+    if (description.length < 3) {
+      toast.error("La descripción debe tener al menos 3 caracteres")
+      return
+    }
+
+    try {
+      const res = await fetch("http://localhost:3001/transaction/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        {
-            description:"Compra de Smart Tv",
-            categoryName:"electronicos",
-            type:"egreso",
-            date:"01/06/2025",
-            amount:"6000"
-        },
-        {
-            description:"Pago de nomina",
-            categoryName:"Trabajo",
-            type:"ingreso",
-            date:"03/06/2025",
-            amount:"10000"
-        },
-        {
-            description:"Compra de Smart Tv",
-            categoryName:"electronicos",
-            type:"egreso",
-            date:"01/06/2025",
-            amount:"6000"
-        },
-        {
-            description:"Pago de nomina",
-            categoryName:"Trabajo",
-            type:"ingreso",
-            date:"03/06/2025",
-            amount:"10000"
-        },
-        {
-            description:"Compra de Smart Tv",
-            categoryName:"electronicos",
-            type:"egreso",
-            date:"01/06/2025",
-            amount:"6000"
-        },
-    ];
+        body: JSON.stringify({ description, amount: Number(amount), type, category }),
+      })
+
+      if (res.ok) {
+        const nueva = await res.json()
+        setTransactions([...transactions, nueva])
+        setDescription("")
+        setAmount("")
+        setType("ingreso")
+        setCategory(categories[0]?._id || "")
+        toast.success("Transacción agregada exitosamente")
+      } else {
+        const err = await res.json()
+        toast.error("Error al agregar: " + err.message)
+      }
+    } catch (err) {
+      toast.error("Error al agregar transacción", err)
+    }
+  }
+
+  const formatearMoneda = (cantidad) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+    }).format(cantidad);
+  }
+
+  const filteredTransactions = transactions.filter((t) =>
+    t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <section className="w-9/10 flex flex-col items-center min-h-screen" >
-      <form className="w-fit p-3 flex flex-col items-end ">
-        <h1 className="w-full text-center text-3xl text-slate-500 mb-4">Movimientos</h1>
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-white p-10">
+      <h1 className="text-center text-4xl font-extrabold text-purple-700 mb-10">Registro de Transacciones</h1>
 
-        <div className="flex flex-col w-full">
-          <label className="text-slate-900 font-bold mb-2" >
-            Descripción
-          </label>
-          <textarea rows={2} required className="w-full border border-slate-500 focus:outline-none focus:border-pink-900" ></textarea>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl mx-auto">
+        {/* Formulario */}
+        <form onSubmit={buttonSubmit} className="bg-white shadow-lg rounded-2xl p-6">
+          <h2 className="text-2xl font-bold text-gray-700 mb-4">Agregar nueva transacción</h2>
 
-        <div className="flex flex-col">
-          <label className="text-slate-900 font-bold mb-2">
-            Monto a registrar
-          </label>
-          <input
-            className="border border-slate-500 focus:outline-none focus:border-pink-900 w-[300px]"
-            type="number"
-            placeholder="3 000"
-            required />
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-600 font-semibold mb-1">Descripción</label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Ej: Compra de materiales"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
+          </div>
 
-        <div className="flex flex-col">
-          <label className="text-slate-900 font-bold mb-2">
-            Tipo de movimiento
-          </label>
-          <select
-            className="border border-slate-500 focus:outline-none focus:border-pink-900 w-[300px]"
-            required>
-            <option value="ingreso" >Ingreso</option>
-            <option value="egreso" >Egreso</option>
-          </select>
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-600 font-semibold mb-1">Monto</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="2000"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
+          </div>
 
-        <div className="flex flex-col">
-          <label className="text-slate-900 font-bold mb-2">
-            Categoria
-          </label>
-          <select
-            className="border border-slate-500 focus:outline-none focus:border-pink-900 w-[300px]"
-            required>
-            <option value="1">categoria 1</option>
-            <option value="2">categoria 2</option>
-            <option value="3">categoria 3</option>
-          </select>
-        </div>
+          <div className="mb-4">
+            <label className="block text-gray-600 font-semibold mb-1">Tipo</label>
+            <select
+              value={type}
+              onChange={e => setType(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              <option value="ingreso">Ingreso</option>
+              <option value="egreso">Egreso</option>
+            </select>
+          </div>
 
-        <button className="w-fit bg-slate-700 text-white px-3 py-1 rounded my-2 cursor-pointer hover:bg-pink-900">Agregar</button>
-        <p className="w-full text-center text-sm text-gray-400">Ingresa movimiento nuevo</p>
-      </form>
-      <div className="w-full" >
-        <form className="w-full flex justify-end">
-          <input type="text" placeholder="Buscar..."
-            className="border-b border-b-slate-500 text-center"
-          />
+          <div className="mb-4">
+            <label className="block text-gray-600 font-semibold mb-1">Categoría</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              {categories.map(cat => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <button className="w-full bg-purple-600 text-white py-2 rounded-lg text-lg font-semibold hover:bg-purple-700 transition">
+            Agregar transacción
+          </button>
+
+          <p className="text-center text-sm text-gray-400 mt-3">Todos los campos son obligatorios</p>
         </form>
-        <ul className="mt-3 bg-slate-700 text-white shadow">
-            {transactionsList.map((movimiento,posicionArreglo)=>{
-                return (<TransactionItem  transaction={movimiento} 
-                  key={posicionArreglo} />)
-            })}
-        </ul>
+
+        {/* Lista de transacciones */}
+        <div className="bg-white shadow-lg rounded-2xl p-6">
+          <h2 className="text-2xl font-bold text-gray-700 mb-4">Transacciones recientes</h2>
+
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Buscar por descripción o categoría..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
+          </div>
+
+          <ul className="max-h-96 overflow-y-auto divide-y divide-gray-200">
+            {filteredTransactions.map((mov, i) => (
+              <TransactionItem
+                key={i}
+                transaction={mov}
+                formatearMoneda={formatearMoneda}
+                destacado={searchTerm.length > 0}
+              />
+            ))}
+          </ul>
+        </div>
       </div>
-    </section>
+    </div>
   )
 }
 
-export default Transactions
+export default Transaction
